@@ -555,7 +555,7 @@ const HomePage = () => {
                     </div>
                     <div>
                       <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">Email Us</p>
-                      <p className="font-bold text-lg">hello@sweeper.co</p>
+                      <p className="font-bold text-lg">Sweeper.admin@gmail.com</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-6 group">
