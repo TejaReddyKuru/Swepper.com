@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Star, Shield, Clock, ThumbsUp, Sparkles, MapPin, Phone, Mail, ChevronDown, CheckCircle, ShieldCheck, X } from 'lucide-react';
+import { CheckCircle2, Star, Shield, Clock, ThumbsUp, Sparkles, MapPin, Phone, Mail, ChevronDown, CheckCircle, ShieldCheck, X, ShoppingCart } from 'lucide-react';
 import { useForm, ValidationError } from '@formspree/react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -110,6 +110,47 @@ const HomePage = () => {
     const text = `Hi SWEEPER.CO,\nI want to book: ${planName}.\n\nPlan: ${planName}\nPrice: ₹${price}${detail ? `\nDetails: ${detail}` : ''}\n\nPlease contact me.`;
     const encodedText = encodeURIComponent(text);
     window.open(`https://wa.me/918317546078?text=${encodedText}`, '_blank');
+  };
+
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [cartPendingItem, setCartPendingItem] = useState(null);
+  const [customerDetails, setCustomerDetails] = useState({ name: '', email: '', phone: '', address: '', blockNumber: '', apartmentNumber: '' });
+  const [submittingCustomer, setSubmittingCustomer] = useState(false);
+
+  const handleAddToCart = (planName, price, detail = '') => {
+    setCartPendingItem({ planName, price, detail });
+    setShowCustomerModal(true);
+  };
+
+  const confirmAddToCart = async (e) => {
+    e.preventDefault();
+    setSubmittingCustomer(true);
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      await axios.post(`${baseUrl}/api/inquiries`, {
+        name: customerDetails.name,
+        email: customerDetails.email,
+        phone: customerDetails.phone,
+        address: customerDetails.address,
+        blockNumber: customerDetails.blockNumber,
+        apartmentNumber: customerDetails.apartmentNumber,
+        message: `Customer added ${cartPendingItem.planName} to cart. Detail: ${cartPendingItem.detail}`,
+        selectedPlan: cartPendingItem.planName
+      });
+    } catch (error) {
+      console.error('Failed to register inquiry:', error);
+    }
+    
+    const cartItems = JSON.parse(localStorage.getItem('cartItems')) || [];
+    cartItems.push(cartPendingItem);
+    localStorage.setItem('cartItems', JSON.stringify(cartItems));
+    window.dispatchEvent(new Event('cartUpdated'));
+    toast.success(`${cartPendingItem.planName} added to cart`);
+    
+    setSubmittingCustomer(false);
+    setShowCustomerModal(false);
+    setCartPendingItem(null);
+    setCustomerDetails({ name: '', email: '', phone: '', address: '', blockNumber: '', apartmentNumber: '' });
   };
 
   const [formState, handleFormSubmit] = useForm('mgodplkj');
@@ -282,12 +323,18 @@ const HomePage = () => {
                   ))}
                 </ul>
               </div>
-              <div className="p-8 pt-0 mt-auto">
+              <div className="p-8 pt-0 mt-auto flex flex-col gap-3">
+                <button
+                  onClick={() => handleAddToCart('Basic Plan', basicPlanPrices[basicBhk], basicBhk)}
+                  className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold transition-all hover:bg-slate-800 shadow-md flex items-center justify-center gap-2"
+                >
+                  <ShoppingCart size={18} /> Add {basicBhk} Basic to Cart
+                </button>
                 <button
                   onClick={() => handleSubscribe('Basic Plan', basicPlanPrices[basicBhk], basicBhk)}
-                  className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold transition-all hover:bg-slate-800 shadow-md"
+                  className="w-full py-2 bg-transparent text-slate-600 rounded-xl font-bold transition-all hover:bg-slate-100 flex items-center justify-center gap-2 text-sm"
                 >
-                  Book {basicBhk} Basic
+                  Book via WhatsApp
                 </button>
               </div>
             </div>
@@ -351,12 +398,18 @@ const HomePage = () => {
                   ))}
                 </ul>
               </div>
-              <div className="p-8 pt-0 mt-auto">
+              <div className="p-8 pt-0 mt-auto flex flex-col gap-3">
+                <button
+                  onClick={() => handleAddToCart('Premium Plan', premiumPlanPrices[premiumBhk], premiumBhk)}
+                  className="w-full py-4 bg-[#059669] text-white rounded-2xl font-extrabold transition-all hover:bg-[#047857] shadow-lg shadow-[#059669]/30 flex items-center justify-center gap-2"
+                >
+                  <ShoppingCart size={18} /> Add {premiumBhk} Premium to Cart
+                </button>
                 <button
                   onClick={() => handleSubscribe('Premium Plan', premiumPlanPrices[premiumBhk], premiumBhk)}
-                  className="w-full py-4 bg-[#059669] text-white rounded-2xl font-extrabold transition-all hover:bg-[#047857] shadow-lg shadow-[#059669]/30"
+                  className="w-full py-2 bg-transparent text-[#059669] rounded-xl font-bold transition-all hover:bg-emerald-50 flex items-center justify-center gap-2 text-sm"
                 >
-                  Book {premiumBhk} Premium
+                  Book via WhatsApp
                 </button>
               </div>
             </div>
@@ -369,7 +422,7 @@ const HomePage = () => {
               </div>
               
               <div className="p-6 flex-grow flex flex-col gap-4">
-                <div className="p-4 border border-slate-200 bg-white rounded-2xl hover:border-[#059669] hover:shadow-md transition-all group cursor-pointer" onClick={() => handleSubscribe('Washroom Cleaning', 459, 'Per Washroom')}>
+                <div className="p-4 border border-slate-200 bg-white rounded-2xl hover:border-[#059669] hover:shadow-md transition-all group cursor-pointer" onClick={() => handleAddToCart('Washroom Cleaning', 459, 'Per Washroom')}>
                   <div className="flex justify-between items-center mb-1">
                     <h5 className="font-bold text-slate-800 group-hover:text-[#059669] transition-colors">Washroom Cleaning</h5>
                     <span className="font-black text-slate-900">₹459/-</span>
@@ -385,7 +438,7 @@ const HomePage = () => {
                       { bhk: '2 BHK', p: 1499 },
                       { bhk: '3 BHK', p: 1799 }
                     ].map((item) => (
-                      <div key={item.bhk} className="flex justify-between items-center text-sm cursor-pointer hover:text-[#059669] hover:bg-emerald-50 p-2 rounded-lg transition-colors" onClick={() => handleSubscribe('Only Cleaning & Mopping', item.p, item.bhk)}>
+                      <div key={item.bhk} className="flex justify-between items-center text-sm cursor-pointer hover:text-[#059669] hover:bg-emerald-50 p-2 rounded-lg transition-colors" onClick={() => handleAddToCart('Only Cleaning & Mopping', item.p, item.bhk)}>
                         <span className="text-slate-600 font-medium">{item.bhk}</span>
                         <span className="font-bold text-slate-900">₹{item.p}/-</span>
                       </div>
@@ -393,14 +446,14 @@ const HomePage = () => {
                   </div>
                 </div>
 
-                <div className="p-4 border border-slate-200 bg-white rounded-2xl hover:border-[#059669] hover:shadow-md transition-all group cursor-pointer" onClick={() => handleSubscribe('Only Dishes', 1099)}>
+                <div className="p-4 border border-slate-200 bg-white rounded-2xl hover:border-[#059669] hover:shadow-md transition-all group cursor-pointer" onClick={() => handleAddToCart('Only Dishes', 1099)}>
                   <div className="flex justify-between items-center">
                     <h5 className="font-bold text-slate-800 group-hover:text-[#059669] transition-colors">Only Dishes</h5>
                     <span className="font-black text-slate-900">₹1099/-</span>
                   </div>
                 </div>
 
-                <div className="p-4 border border-slate-200 bg-white rounded-2xl hover:border-[#059669] hover:shadow-md transition-all group cursor-pointer" onClick={() => handleSubscribe('Deep Cleaning Full House', 2499, 'Single Time')}>
+                <div className="p-4 border border-slate-200 bg-white rounded-2xl hover:border-[#059669] hover:shadow-md transition-all group cursor-pointer" onClick={() => handleAddToCart('Deep Cleaning Full House', 2499, 'Single Time')}>
                   <div className="flex justify-between items-center mb-1">
                     <h5 className="font-bold text-slate-800 group-hover:text-[#059669] transition-colors">Deep Cleaning</h5>
                     <span className="font-black text-slate-900">₹2499/-</span>
@@ -640,6 +693,104 @@ const HomePage = () => {
           <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
         </svg>
       </a>
+
+      {/* Customer Details Modal */}
+      {showCustomerModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl relative"
+          >
+            <button 
+              onClick={() => setShowCustomerModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full p-2 transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <h3 className="text-2xl font-extrabold text-slate-900 mb-2">Almost there!</h3>
+            <p className="text-slate-600 mb-6 text-sm">Please provide your details before adding <span className="font-bold text-[#059669]">{cartPendingItem?.planName}</span> to your cart.</p>
+            
+            <form onSubmit={confirmAddToCart} className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Name</label>
+                <input 
+                  required 
+                  type="text" 
+                  value={customerDetails.name}
+                  onChange={(e) => setCustomerDetails({...customerDetails, name: e.target.value})}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:ring-2 focus:ring-[#059669] outline-none transition-all placeholder-slate-400"
+                  placeholder="Your Name" 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Email</label>
+                <input 
+                  required 
+                  type="email" 
+                  value={customerDetails.email}
+                  onChange={(e) => setCustomerDetails({...customerDetails, email: e.target.value})}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:ring-2 focus:ring-[#059669] outline-none transition-all placeholder-slate-400"
+                  placeholder="Your Email" 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Phone</label>
+                <input 
+                  required 
+                  type="tel" 
+                  value={customerDetails.phone}
+                  onChange={(e) => setCustomerDetails({...customerDetails, phone: e.target.value})}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:ring-2 focus:ring-[#059669] outline-none transition-all placeholder-slate-400"
+                  placeholder="Your Phone Number" 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Address</label>
+                <input 
+                  required 
+                  type="text" 
+                  value={customerDetails.address}
+                  onChange={(e) => setCustomerDetails({...customerDetails, address: e.target.value})}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:ring-2 focus:ring-[#059669] outline-none transition-all placeholder-slate-400"
+                  placeholder="Street Address or Area" 
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Block Number</label>
+                  <input 
+                    required 
+                    type="text" 
+                    value={customerDetails.blockNumber}
+                    onChange={(e) => setCustomerDetails({...customerDetails, blockNumber: e.target.value})}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:ring-2 focus:ring-[#059669] outline-none transition-all placeholder-slate-400"
+                    placeholder="Block No." 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Apartment Number</label>
+                  <input 
+                    required 
+                    type="text" 
+                    value={customerDetails.apartmentNumber}
+                    onChange={(e) => setCustomerDetails({...customerDetails, apartmentNumber: e.target.value})}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:ring-2 focus:ring-[#059669] outline-none transition-all placeholder-slate-400"
+                    placeholder="Apt No." 
+                  />
+                </div>
+              </div>
+              <button 
+                type="submit" 
+                disabled={submittingCustomer}
+                className="w-full py-4 mt-2 bg-[#059669] hover:bg-[#047857] text-white rounded-xl font-bold transition-all shadow-lg shadow-[#059669]/30 disabled:opacity-70 flex items-center justify-center gap-2"
+              >
+                {submittingCustomer ? 'Processing...' : 'Continue to Cart'}
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

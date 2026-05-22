@@ -2,22 +2,39 @@ const express = require('express');
 const router = express.Router();
 const Inquiry = require('../models/Inquiry');
 const { protect } = require('../middleware/auth');
+const { protectUser } = require('../middleware/userAuth');
 
 // @desc    Create an inquiry
 // @route   POST /api/inquiries
 // @access  Public
 router.post('/', async (req, res) => {
   try {
-    const { name, phone, message, selectedPlan } = req.body;
+    const { name, email, phone, message, selectedPlan, address, blockNumber, apartmentNumber } = req.body;
     const inquiry = await Inquiry.create({
       name,
+      email,
       phone,
       message,
       selectedPlan,
+      address,
+      blockNumber,
+      apartmentNumber,
     });
     res.status(201).json(inquiry);
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+});
+
+// @desc    Get logged in user's inquiries
+// @route   GET /api/inquiries/my
+// @access  Private (User)
+router.get('/my', protectUser, async (req, res) => {
+  try {
+    const inquiries = await Inquiry.find({ email: req.user.email }).sort({ createdAt: -1 });
+    res.json(inquiries);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 

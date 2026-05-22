@@ -8,6 +8,9 @@ import AdminLayout from './layouts/AdminLayout';
 
 // Pages
 import HomePage from './pages/HomePage';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import UserDashboard from './pages/UserDashboard';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 
@@ -18,6 +21,9 @@ function App() {
         {/* Public Routes */}
         <Route path="/" element={<MainLayout />}>
           <Route index element={<HomePage />} />
+          <Route path="login" element={<Login />} />
+          <Route path="register" element={<Register />} />
+          <Route path="dashboard" element={<UserDashboard />} />
         </Route>
 
         {/* Admin Routes */}

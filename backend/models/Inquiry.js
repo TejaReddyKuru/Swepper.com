@@ -22,6 +22,15 @@ const inquirySchema = mongoose.Schema(
       type: String,
       default: 'General Inquiry',
     },
+    address: {
+      type: String,
+    },
+    blockNumber: {
+      type: String,
+    },
+    apartmentNumber: {
+      type: String,
+    },
     status: {
       type: String,
       enum: ['new', 'contacted'],
