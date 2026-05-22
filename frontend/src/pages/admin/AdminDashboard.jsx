@@ -17,7 +17,7 @@ const AdminDashboard = () => {
       setLoading(true);
       const token = localStorage.getItem('adminToken');
       const headers = { Authorization: `Bearer ${token}` };
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const baseUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:5000');
       
       const [inqRes, usersRes, ordersRes] = await Promise.all([
         axios.get(`${baseUrl}/api/inquiries`, { headers }),
@@ -43,7 +43,8 @@ const AdminDashboard = () => {
     if (!window.confirm('Are you sure you want to delete this inquiry?')) return;
     try {
       const token = localStorage.getItem('adminToken');
-      await axios.delete(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/inquiries/${id}`, {
+      const baseUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:5000');
+      await axios.delete(`${baseUrl}/api/inquiries/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Inquiry deleted');
@@ -56,7 +57,8 @@ const AdminDashboard = () => {
   const handleMarkContacted = async (id) => {
     try {
       const token = localStorage.getItem('adminToken');
-      await axios.put(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/inquiries/${id}`, { status: 'contacted' }, {
+      const baseUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:5000');
+      await axios.put(`${baseUrl}/api/inquiries/${id}`, { status: 'contacted' }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Marked as contacted');
