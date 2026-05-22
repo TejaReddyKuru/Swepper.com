@@ -260,4 +260,39 @@ router.put('/address/:id/default', protectUser, async (req, res) => {
   }
 });
 
+// @desc    Toggle service status for a user (30 days validity)
+// @route   PATCH /api/users/:id/toggle-service
+// @access  Private (Admin)
+router.patch('/:id/toggle-service', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Toggle logic
+    const newStatus = !user.serviceStatus;
+    const newExpiry = newStatus ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          serviceStatus: newStatus,
+          serviceExpiryDate: newExpiry
+        }
+      },
+      { new: true }
+    );
+
+    res.json({
+      message: updatedUser.serviceStatus ? 'Service activated for 30 days' : 'Service deactivated',
+      serviceStatus: updatedUser.serviceStatus,
+      serviceExpiryDate: updatedUser.serviceExpiryDate
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;

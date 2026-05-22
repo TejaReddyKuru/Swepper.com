@@ -86,4 +86,22 @@ router.patch('/:id/status', protect, async (req, res) => {
   }
 });
 
+// @desc    Toggle service eligibility
+// @route   PATCH /api/admin/toggle-service/:id
+// @access  Private (Admin)
+router.patch('/toggle-service/:id', protect, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    order.serviceEligible = !order.serviceEligible;
+    const updatedOrder = await order.save();
+    res.json({ message: 'Service eligibility updated', serviceEligible: updatedOrder.serviceEligible });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
 module.exports = router;

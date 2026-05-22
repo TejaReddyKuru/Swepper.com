@@ -37,12 +37,14 @@ const UserDashboard = () => {
             Authorization: `Bearer ${parsedUser.token}`,
           },
         };
-        const [inqRes, ordRes] = await Promise.all([
+        const [inqRes, ordRes, profileRes] = await Promise.all([
           axios.get(`${API_URL}/api/inquiries/my`, config).catch(() => ({ data: [] })),
-          axios.get(`${API_URL}/api/orders/my`, config).catch(() => ({ data: [] }))
+          axios.get(`${API_URL}/api/orders/my`, config).catch(() => ({ data: [] })),
+          axios.get(`${API_URL}/api/users/profile`, config).catch(() => ({ data: parsedUser }))
         ]);
         setInquiries(inqRes.data);
         setOrders(ordRes.data);
+        setUser({ ...parsedUser, ...profileRes.data });
       } catch (error) {
         console.error('Error fetching inquiries:', error);
         toast.error('Could not load inquiries');
@@ -315,8 +317,42 @@ const UserDashboard = () => {
           <div className="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-3xl p-6 shadow-[0_10px_30px_rgba(5,150,105,0.04)] min-h-[400px]">
             <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
               <ShoppingCart size={20} className="text-[#059669]" />
-              <span>Purchase History ({orders.length})</span>
+              <span>Service Status & Purchases ({orders.length})</span>
             </h2>
+
+            {/* Global Service Status from Admin */}
+            <div className={`mb-6 p-5 rounded-2xl border ${user?.serviceStatus && (!user?.serviceExpiryDate || new Date(user.serviceExpiryDate) > new Date()) ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}>
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="font-bold text-slate-800">Current Subscription Status</h3>
+                  <p className="text-xs font-semibold text-slate-500 mt-1">
+                    {user?.serviceStatus && (!user?.serviceExpiryDate || new Date(user.serviceExpiryDate) > new Date()) 
+                      ? `Active until ${new Date(user.serviceExpiryDate).toLocaleDateString()}` 
+                      : 'No active subscription currently'}
+                  </p>
+                </div>
+                {user?.serviceStatus && (!user?.serviceExpiryDate || new Date(user.serviceExpiryDate) > new Date()) ? (
+                  <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-black rounded-full uppercase tracking-widest">
+                    Active
+                  </span>
+                ) : (
+                  <span className="px-3 py-1 bg-slate-200 text-slate-500 text-xs font-black rounded-full uppercase tracking-widest">
+                    Inactive
+                  </span>
+                )}
+              </div>
+              {user?.serviceStatus && (!user?.serviceExpiryDate || new Date(user.serviceExpiryDate) > new Date()) && (
+                <button 
+                  onClick={() => {
+                     const message = `Hello SWEEPER.CO,\n\nI want to book my eligible service!`;
+                     window.open(`https://wa.me/918317546078?text=${encodeURIComponent(message)}`, '_blank');
+                  }}
+                  className="w-full mt-4 bg-[#059669] text-white py-2.5 rounded-xl font-bold hover:bg-[#047857] transition-colors flex items-center justify-center gap-2 text-sm shadow-sm"
+                >
+                  <CheckCircle size={16} /> Book Daily Service
+                </button>
+              )}
+            </div>
 
             {orders.length === 0 ? (
               <div className="flex flex-col justify-center items-center py-20 text-center">
@@ -362,10 +398,6 @@ const UserDashboard = () => {
                       ))}
                     </div>
 
-                    <div className="flex justify-between items-center border-t border-slate-100 pt-3">
-                      <span className="text-slate-500 text-sm font-semibold">Total Amount</span>
-                      <span className="text-[#059669] font-black text-lg">₹{ord.totalAmount}</span>
-                    </div>
                   </div>
                 ))}
               </div>

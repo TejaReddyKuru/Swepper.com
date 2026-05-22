@@ -68,6 +68,35 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleToggleService = async (orderId) => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const baseUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:5000');
+      const { data } = await axios.patch(`${baseUrl}/api/orders/toggle-service/${orderId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success(data.message);
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to toggle service');
+    }
+  };
+
+  const handleToggleUserService = async (userId) => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const baseUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:5000');
+      const { data } = await axios.patch(`${baseUrl}/api/users/${userId}/toggle-service`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success(data.message);
+      fetchData();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to toggle user service');
+    }
+  };
+
   const filteredInquiries = inquiries.filter(inv => 
     inv.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     inv.phone.includes(searchTerm) ||
@@ -211,6 +240,7 @@ const AdminDashboard = () => {
                   filteredUsers.map((user) => {
                     const userOrders = orders.filter(o => o.user?._id === user._id || o.user === user._id);
                     const isExpanded = expandedUserId === user._id;
+                    const isServiceActive = user.serviceStatus && (!user.serviceExpiryDate || new Date(user.serviceExpiryDate) > new Date());
 
                     return (
                       <React.Fragment key={user._id}>
@@ -219,14 +249,27 @@ const AdminDashboard = () => {
                           className="hover:bg-gray-50/50 transition-colors cursor-pointer"
                         >
                           <td className="p-4 text-gray-500">{new Date(user.createdAt || Date.now()).toLocaleDateString()}</td>
-                          <td className="p-4 font-medium text-gray-900">{user.name}</td>
+                          <td className="p-4 font-medium text-gray-900">
+                            <div className="flex items-center gap-2">
+                              {user.name}
+                              {isServiceActive && <span className="text-[9px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold tracking-wider">ACTIVE</span>}
+                            </div>
+                          </td>
                           <td className="p-4 text-gray-500">{user.email}</td>
                           <td className="p-4 text-gray-500">{user.phone}</td>
                           <td className="p-4 text-right">
-                            <div className="flex items-center justify-end gap-2 text-emerald-600 font-bold">
-                              <ShoppingBag size={16} />
-                              {userOrders.length}
-                              {isExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                            <div className="flex items-center justify-end gap-3">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleToggleUserService(user._id); }}
+                                className={`px-3 py-1 rounded-full text-[10px] font-bold transition-colors ${isServiceActive ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                              >
+                                {isServiceActive ? 'Service: ON' : 'Service: OFF'}
+                              </button>
+                              <div className="inline-flex items-center gap-1 text-emerald-600 font-bold ml-2 border-l border-gray-200 pl-3">
+                                <ShoppingBag size={16} />
+                                {userOrders.length}
+                                {isExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                              </div>
                             </div>
                           </td>
                         </tr>
@@ -251,9 +294,17 @@ const AdminDashboard = () => {
                                             ))}
                                           </div>
                                         </div>
-                                        <div className="flex flex-col items-end">
-                                          <div className="font-black text-emerald-600">₹{order.totalAmount}</div>
-                                          <div className="text-[10px] text-gray-500 uppercase font-bold">{order.paymentStatus}</div>
+                                        <div className="flex flex-col items-end gap-2">
+                                          <div className="flex flex-col items-end">
+                                            <div className="font-black text-emerald-600">₹{order.totalAmount}</div>
+                                            <div className="text-[10px] text-gray-500 uppercase font-bold">{order.paymentStatus}</div>
+                                          </div>
+                                          <button 
+                                            onClick={(e) => { e.stopPropagation(); handleToggleService(order._id); }}
+                                            className={`px-3 py-1 rounded-full text-[10px] font-bold transition-colors ${order.serviceEligible ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}
+                                          >
+                                            Service Eligible: {order.serviceEligible ? 'ON ✅' : 'OFF ❌'}
+                                          </button>
                                         </div>
                                       </div>
                                     ))}

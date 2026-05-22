@@ -41,6 +41,13 @@ const userSchema = mongoose.Schema(
         isDefault: { type: Boolean, default: false },
       }
     ],
+    serviceStatus: {
+      type: Boolean,
+      default: false,
+    },
+    serviceExpiryDate: {
+      type: Date,
+    },
   },
   {
     timestamps: true,

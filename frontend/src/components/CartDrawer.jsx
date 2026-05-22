@@ -35,45 +35,37 @@ const CartDrawer = ({ isOpen, onClose }) => {
     toast.info('Item removed from cart');
   };
 
-  const subtotal = cartItems.reduce((acc, item) => acc + item.price, 0);
-  const tax = subtotal * 0.18; // 18% GST for example
-  const totalAmount = subtotal + tax;
-
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
+  const totalAmount = cartItems.reduce((acc, item) => acc + item.price, 0);
 
   const handleCheckout = async () => {
-    const userInfo = localStorage.getItem('userInfo');
-    if (!userInfo) {
+    const userInfoStr = localStorage.getItem('userInfo');
+    if (!userInfoStr) {
       toast.warn('Please login to continue checkout');
       onClose();
       navigate('/login');
       return;
     }
 
-    const token = JSON.parse(userInfo).token;
+    const userInfo = JSON.parse(userInfoStr);
+    const token = userInfo.token;
 
+    setLoading(true);
+
+    let addressString = 'N/A';
+    
     try {
-      setLoading(true);
-      const res = await loadRazorpayScript();
-      if (!res) {
-        toast.error('Razorpay SDK failed to load. Are you online?');
-        return;
-      }
-
       const config = {
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
       };
+
+      // Fetch user profile to get address
+      const { data: profile } = await axios.get('/api/users/profile', config);
+      const addressObj = profile.addresses?.find(a => a.isDefault) || profile.addresses?.[0];
+      if (addressObj && addressObj.addressLine1) {
+        addressString = `${addressObj.addressLine1}, ${addressObj.city}`;
+      }
 
       const orderData = {
         items: cartItems.map(item => ({
@@ -81,76 +73,35 @@ const CartDrawer = ({ isOpen, onClose }) => {
           price: item.price,
           detail: item.detail,
           quantity: 1,
+          bhkType: item.detail || 'N/A'
         })),
-        subtotal,
-        tax,
-        totalAmount,
+        subtotal: totalAmount,
+        tax: 0,
+        totalAmount: totalAmount,
+        address: addressObj || { addressLine1: 'N/A', city: 'N/A', pincode: 'N/A' }
       };
 
-      // 1. Create order
-      const { data: orderResponse } = await axios.post('/api/payment/create-order', orderData, config);
-
-      if (orderResponse.isSimulated) {
-        // Handle Simulated Checkout
-        const { data: verifyResponse } = await axios.post('/api/payment/verify', {
-          orderId: orderResponse.order._id,
-          isSimulated: true
-        }, config);
-        
-        toast.success(verifyResponse.message || 'Purchase successful!');
-        finalizePurchase();
-        return;
-      }
-
-      // Handle Real Razorpay Flow
-      const options = {
-        key: orderResponse.razorpayOrder.key,
-        amount: orderResponse.razorpayOrder.amount,
-        currency: orderResponse.razorpayOrder.currency,
-        name: 'SWEEPER.CO',
-        description: 'Plan Subscription',
-        order_id: orderResponse.razorpayOrder.id,
-        handler: async function (response) {
-          try {
-            const { data: verifyData } = await axios.post('/api/payment/verify', {
-              orderId: orderResponse.order._id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
-            }, config);
-            
-            toast.success('Payment successful!');
-            finalizePurchase();
-          } catch (error) {
-            toast.error(error.response?.data?.message || 'Payment verification failed');
-          }
-        },
-        prefill: {
-          name: JSON.parse(userInfo).name,
-          email: JSON.parse(userInfo).email,
-          contact: JSON.parse(userInfo).phone,
-        },
-        theme: {
-          color: '#059669',
-        },
-      };
-
-      const paymentObject = new window.Razorpay(options);
-      paymentObject.open();
-
+      // Create order in backend
+      await axios.post('/api/orders', orderData, config);
     } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.message || 'Checkout failed');
-    } finally {
-      setLoading(false);
+      console.error('Backend operation failed, proceeding to WhatsApp anyway:', error);
     }
-  };
 
-  const finalizePurchase = () => {
+    // Generate WhatsApp message (Guaranteed to run)
+    const plansList = cartItems.map(item => `Plan: ${item.planName}\nType: ${item.detail || 'N/A'}`).join('\n\n');
+    
+    const message = `Hello SWEEPER.CO,\n\nI want to book the following service:\n\n${plansList}\nAmount: ₹${totalAmount}\n\nCustomer Details:\nName: ${userInfo.name}\nPhone: ${userInfo.phone}\nAddress: ${addressString}\n\nPlease share the payment QR code.`;
+    
+    // Clear cart
     localStorage.removeItem('cartItems');
     setCartItems([]);
     window.dispatchEvent(new Event('cartUpdated'));
     onClose();
+
+    // Open WhatsApp
+    window.open(`https://wa.me/918317546078?text=${encodeURIComponent(message)}`, '_blank');
+    
+    setLoading(false);
     navigate('/dashboard');
   };
 
@@ -213,15 +164,11 @@ const CartDrawer = ({ isOpen, onClose }) => {
           <div className="p-6 border-t border-slate-100 bg-slate-50">
             <div className="space-y-3 mb-6">
               <div className="flex justify-between text-slate-600">
-                <span>Subtotal</span>
-                <span className="font-semibold">₹{subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-slate-600">
-                <span>Tax (18% GST)</span>
-                <span className="font-semibold">₹{tax.toFixed(2)}</span>
+                <span>Plan Price</span>
+                <span className="font-semibold">₹{totalAmount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-lg font-black text-slate-900 pt-3 border-t border-slate-200">
-                <span>Total</span>
+                <span>Total Amount</span>
                 <span className="text-[#059669]">₹{totalAmount.toFixed(2)}</span>
               </div>
             </div>
@@ -231,7 +178,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
               disabled={loading}
               className="w-full py-4 bg-[#059669] text-white rounded-xl font-bold hover:bg-[#047857] transition-colors shadow-lg shadow-[#059669]/30 disabled:opacity-70 flex justify-center items-center gap-2"
             >
-              {loading ? 'Processing...' : 'Secure Checkout'}
+              {loading ? 'Processing...' : 'Checkout / Book Now'}
             </button>
           </div>
         )}

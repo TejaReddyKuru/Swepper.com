@@ -81,6 +81,10 @@ const orderSchema = mongoose.Schema(
       pincode: { type: String, required: true },
       landmark: { type: String },
     },
+    serviceEligible: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

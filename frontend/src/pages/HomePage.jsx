@@ -11,9 +11,8 @@ gsap.registerPlugin(ScrollTrigger);
 
 const Typewriter = () => {
   const phrases = [
-    { line1: "Clean Home,", line2: "Happy Heart!" },
     { line1: "Ghar Saaf,", line2: "Dil Khush!" },
-    { line1: "घर साफ़,", line2: "दिल खुश!" }
+    { line1: "Clean Home,", line2: "Healthy Life!" }
   ];
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [charIndex, setCharIndex] = useState(0);
