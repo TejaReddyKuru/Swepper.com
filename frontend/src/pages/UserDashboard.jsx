@@ -11,7 +11,7 @@ const UserDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   // Form State for new inquiry
-  const [selectedPlan, setSelectedPlan] = useState('Standard Subscription');
+  const [selectedPlan, setSelectedPlan] = useState('Basic Plan');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -207,10 +207,9 @@ const UserDashboard = () => {
                   onChange={(e) => setSelectedPlan(e.target.value)}
                   className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-semibold text-slate-800 shadow-sm"
                 >
-                  <option value="Single Clean (Trial)">Single Clean (Trial)</option>
-                  <option value="Standard Subscription">Standard Subscription (Bi-weekly)</option>
-                  <option value="Premium Subscription">Premium Subscription (Weekly)</option>
-                  <option value="Deep Clean Custom">Deep Clean Custom (One-off)</option>
+                  <option value="Basic Plan">Basic Plan</option>
+                  <option value="Premium Plan">Premium Plan</option>
+                  <option value="Customised Plan">Customised Plan</option>
                 </select>
               </div>
 
