@@ -15,10 +15,15 @@ const generateOTP = () => {
 // @route   POST /api/users/register
 // @access  Public
 router.post('/register', async (req, res) => {
-  const { name, email, password, phone } = req.body;
+  const { name, email, password, phone, addressLine1, city, pincode, landmark } = req.body;
 
   try {
     let user = await User.findOne({ email });
+    
+    let addresses = [];
+    if (addressLine1 && city && pincode) {
+      addresses = [{ addressLine1, city, pincode, landmark, isDefault: true }];
+    }
 
     if (user) {
       if (user.isVerified) {
@@ -28,10 +33,11 @@ router.post('/register', async (req, res) => {
         user.name = name;
         user.password = password;
         user.phone = phone;
+        if (addresses.length > 0) user.addresses = addresses;
       }
     } else {
       // Create new user record
-      user = new User({ name, email, password, phone });
+      user = new User({ name, email, password, phone, addresses });
     }
 
     // Generate and set OTP
@@ -290,6 +296,22 @@ router.patch('/:id/toggle-service', protect, async (req, res) => {
       serviceStatus: updatedUser.serviceStatus,
       serviceExpiryDate: updatedUser.serviceExpiryDate
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Delete a user
+// @route   DELETE /api/users/:id
+// @access  Private (Admin)
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    await User.deleteOne({ _id: req.params.id });
+    res.json({ message: 'User removed successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

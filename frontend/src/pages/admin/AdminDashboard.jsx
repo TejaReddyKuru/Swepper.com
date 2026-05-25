@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Trash2, CheckCircle, Search, Users, MessageSquare, ChevronDown, ChevronUp, ShoppingBag } from 'lucide-react';
+import { Trash2, CheckCircle, Search, Users, MessageSquare, ChevronDown, ChevronUp, ShoppingBag, TrendingUp, DollarSign, Activity, RefreshCw } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('inquiries');
+  const [activeTab, setActiveTab] = useState('analytics');
   const [inquiries, setInquiries] = useState([]);
   const [users, setUsers] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -37,6 +37,8 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchData();
+    const interval = setInterval(fetchData, 15000); // 15s real-time refresh
+    return () => clearInterval(interval);
   }, []);
 
   const handleDelete = async (id) => {
@@ -97,6 +99,21 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+    try {
+      const token = localStorage.getItem('adminToken');
+      const baseUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:5000');
+      await axios.delete(`${baseUrl}/api/users/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('User deleted successfully');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete user');
+    }
+  };
+
   const filteredInquiries = inquiries.filter(inv => 
     inv.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     inv.phone.includes(searchTerm) ||
@@ -109,10 +126,21 @@ const AdminDashboard = () => {
     u.phone.includes(searchTerm)
   );
 
+  const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+  const activeServices = users.filter(user => user.serviceStatus && (!user.serviceExpiryDate || new Date(user.serviceExpiryDate) > new Date())).length;
+  const newInquiriesCount = inquiries.filter(inq => inq.status === 'new').length;
+  const recentOrders = [...orders].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+
   return (
     <div className="space-y-6">
       {/* Tabs */}
       <div className="flex space-x-4 border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab('analytics')}
+          className={`py-3 px-4 font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'analytics' ? 'border-[#059669] text-[#059669]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+        >
+          <Activity size={18} /> Analytics Board
+        </button>
         <button
           onClick={() => setActiveTab('inquiries')}
           className={`py-3 px-4 font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'inquiries' ? 'border-[#059669] text-[#059669]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
@@ -130,21 +158,106 @@ const AdminDashboard = () => {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h2 className="text-lg font-bold text-gray-900">
-            {activeTab === 'inquiries' ? 'Recent Inquiries' : 'Registered Users'}
+            {activeTab === 'analytics' ? 'Real-Time Analytics' : activeTab === 'inquiries' ? 'Recent Inquiries' : 'Registered Users'}
           </h2>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search..." 
-              className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-[#059669]/50 focus:border-[#059669]"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          {activeTab !== 'analytics' && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <input 
+                type="text" 
+                placeholder="Search..." 
+                className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-[#059669]/50 focus:border-[#059669]"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          )}
         </div>
 
-        {activeTab === 'inquiries' ? (
+        {activeTab === 'analytics' ? (
+          <div className="p-6 space-y-6 bg-gray-50/50">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                <div className="p-3 bg-emerald-100 text-emerald-600 rounded-xl"><DollarSign size={24} /></div>
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Total Revenue</p>
+                  <p className="text-2xl font-black text-gray-900">₹{totalRevenue.toLocaleString()}</p>
+                </div>
+              </div>
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                <div className="p-3 bg-blue-100 text-blue-600 rounded-xl"><Users size={24} /></div>
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Total Users</p>
+                  <p className="text-2xl font-black text-gray-900">{users.length}</p>
+                </div>
+              </div>
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                <div className="p-3 bg-purple-100 text-purple-600 rounded-xl"><TrendingUp size={24} /></div>
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Active Services</p>
+                  <p className="text-2xl font-black text-gray-900">{activeServices}</p>
+                </div>
+              </div>
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                <div className="p-3 bg-amber-100 text-amber-600 rounded-xl"><MessageSquare size={24} /></div>
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">New Inquiries</p>
+                  <p className="text-2xl font-black text-gray-900">{newInquiriesCount}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><ShoppingBag size={18} className="text-emerald-600" /> Recent Orders</h3>
+                <div className="space-y-3">
+                  {recentOrders.length === 0 ? (
+                    <p className="text-gray-500 italic text-sm text-center py-4">No recent orders</p>
+                  ) : (
+                    recentOrders.map(order => (
+                      <div key={order._id} className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-xl transition-colors border border-gray-50">
+                        <div>
+                          <p className="font-bold text-sm text-gray-900">Order #{order._id.slice(-6).toUpperCase()}</p>
+                          <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleString()}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-black text-emerald-600">₹{order.totalAmount}</p>
+                          <p className="text-[10px] font-bold text-gray-400 uppercase">{order.paymentStatus}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+              
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                 <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Activity size={18} className="text-blue-600" /> System Status</h3>
+                 <div className="flex flex-col gap-4">
+                    <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
+                      <span className="text-sm font-medium text-gray-600">Real-time Connection</span>
+                      <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-100 px-3 py-1.5 rounded-full shadow-sm">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        Live Sync Active
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
+                      <span className="text-sm font-medium text-gray-600">Update Frequency</span>
+                      <span className="text-xs font-bold text-gray-500 flex items-center gap-1">
+                        <RefreshCw size={14} className="text-gray-400 animate-spin-slow" /> Every 15s
+                      </span>
+                    </div>
+                    <div className="mt-4 p-4 bg-blue-50 text-blue-800 rounded-xl text-sm border border-blue-100">
+                      <p className="font-medium mb-1">💡 Data is continuously synced</p>
+                      <p className="text-blue-600 text-xs">The dashboard will automatically update to reflect new orders, users, and inquiries as they arrive.</p>
+                    </div>
+                 </div>
+              </div>
+            </div>
+          </div>
+        ) : activeTab === 'inquiries' ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -265,6 +378,14 @@ const AdminDashboard = () => {
                               >
                                 {isServiceActive ? 'Service: ON' : 'Service: OFF'}
                               </button>
+                              
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleDeleteUser(user._id); }}
+                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete User"
+                              >
+                                <Trash2 size={16} />
+                              </button>
                               <div className="inline-flex items-center gap-1 text-emerald-600 font-bold ml-2 border-l border-gray-200 pl-3">
                                 <ShoppingBag size={16} />
                                 {userOrders.length}
@@ -276,40 +397,69 @@ const AdminDashboard = () => {
                         {isExpanded && (
                           <tr className="bg-gray-50/50">
                             <td colSpan="5" className="p-0 border-t border-gray-100">
-                              <div className="p-4 px-8">
-                                {userOrders.length === 0 ? (
-                                  <p className="text-sm text-gray-500 italic">No purchases yet.</p>
-                                ) : (
-                                  <div className="space-y-3">
-                                    {userOrders.map(order => (
-                                      <div key={order._id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                                        <div>
-                                          <div className="font-bold text-gray-800 text-sm">Order #{order._id.slice(-6).toUpperCase()}</div>
-                                          <div className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</div>
-                                          <div className="mt-1 flex flex-wrap gap-1">
-                                            {order.items.map((it, idx) => (
-                                              <span key={idx} className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                                {it.planName}
-                                              </span>
-                                            ))}
-                                          </div>
+                              <div className="p-4 px-8 flex flex-col md:flex-row gap-6">
+                                <div className="flex-1 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                                  <h3 className="font-bold text-gray-800 text-sm mb-3 border-b pb-2">Customer Details</h3>
+                                  <div className="space-y-2 text-sm">
+                                    <p className="text-gray-500"><span className="font-medium text-gray-700">Name:</span> {user.name}</p>
+                                    <p className="text-gray-500"><span className="font-medium text-gray-700">Email:</span> {user.email}</p>
+                                    <p className="text-gray-500"><span className="font-medium text-gray-700">Phone:</span> {user.phone}</p>
+                                    <p className="text-gray-500"><span className="font-medium text-gray-700">Status:</span> {user.isVerified ? 'Verified' : 'Unverified'}</p>
+                                    <div className="mt-3">
+                                      <p className="font-medium text-gray-700 mb-1">Addresses:</p>
+                                      {user.addresses && user.addresses.length > 0 ? (
+                                        <div className="space-y-2 max-h-32 overflow-y-auto">
+                                          {user.addresses.map((addr, idx) => (
+                                            <div key={idx} className="bg-gray-50 p-2 rounded text-xs border border-gray-100">
+                                              <p className="font-medium text-gray-800">{addr.isDefault ? '📍 Default' : 'Location'}</p>
+                                              <p className="text-gray-600">{addr.addressLine1}</p>
+                                              <p className="text-gray-600">{addr.city} - {addr.pincode}</p>
+                                              {addr.landmark && <p className="text-gray-500 text-[10px]">Landmark: {addr.landmark}</p>}
+                                            </div>
+                                          ))}
                                         </div>
-                                        <div className="flex flex-col items-end gap-2">
-                                          <div className="flex flex-col items-end">
-                                            <div className="font-black text-emerald-600">₹{order.totalAmount}</div>
-                                            <div className="text-[10px] text-gray-500 uppercase font-bold">{order.paymentStatus}</div>
-                                          </div>
-                                          <button 
-                                            onClick={(e) => { e.stopPropagation(); handleToggleService(order._id); }}
-                                            className={`px-3 py-1 rounded-full text-[10px] font-bold transition-colors ${order.serviceEligible ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}
-                                          >
-                                            Service Eligible: {order.serviceEligible ? 'ON ✅' : 'OFF ❌'}
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ))}
+                                      ) : (
+                                        <p className="text-gray-400 italic text-xs">No addresses saved.</p>
+                                      )}
+                                    </div>
                                   </div>
-                                )}
+                                </div>
+                                <div className="flex-[2]">
+                                  <h3 className="font-bold text-gray-800 text-sm mb-3">Purchase History</h3>
+                                  {userOrders.length === 0 ? (
+                                    <p className="text-sm text-gray-500 italic bg-white p-4 rounded-xl border border-gray-100">No purchases yet.</p>
+                                  ) : (
+                                    <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                                      {userOrders.map(order => (
+                                        <div key={order._id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                                          <div>
+                                            <div className="font-bold text-gray-800 text-sm">Order #{order._id.slice(-6).toUpperCase()}</div>
+                                            <div className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</div>
+                                            <div className="mt-1 flex flex-wrap gap-1">
+                                              {order.items.map((it, idx) => (
+                                                <span key={idx} className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                                  {it.planName}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          </div>
+                                          <div className="flex flex-col items-end gap-2">
+                                            <div className="flex flex-col items-end">
+                                              <div className="font-black text-emerald-600">₹{order.totalAmount}</div>
+                                              <div className="text-[10px] text-gray-500 uppercase font-bold">{order.paymentStatus}</div>
+                                            </div>
+                                            <button 
+                                              onClick={(e) => { e.stopPropagation(); handleToggleService(order._id); }}
+                                              className={`px-3 py-1 rounded-full text-[10px] font-bold transition-colors ${order.serviceEligible ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}
+                                            >
+                                              Service Eligible: {order.serviceEligible ? 'ON ✅' : 'OFF ❌'}
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </td>
                           </tr>

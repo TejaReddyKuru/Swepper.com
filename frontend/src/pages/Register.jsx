@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { User, Mail, Lock, Phone, ArrowRight, ShieldCheck, Sparkles, RefreshCw } from 'lucide-react';
+import { User, Mail, Lock, Phone, ArrowRight, ShieldCheck, Sparkles, RefreshCw, MapPin } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
@@ -10,6 +10,10 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [addressLine1, setAddressLine1] = useState('');
+  const [city, setCity] = useState('');
+  const [pincode, setPincode] = useState('');
+  const [landmark, setLandmark] = useState('');
   const [otp, setOtp] = useState('');
   
   const [isLoading, setIsLoading] = useState(false);
@@ -50,8 +54,8 @@ const Register = () => {
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !email || !phone || !password) {
-      return toast.error('Please fill out all fields');
+    if (!name || !email || !phone || !password || !addressLine1 || !city || !pincode) {
+      return toast.error('Please fill out all required fields');
     }
 
     setIsLoading(true);
@@ -61,6 +65,10 @@ const Register = () => {
         email,
         phone,
         password,
+        addressLine1,
+        city,
+        pincode,
+        landmark
       });
 
       toast.success(data.message || 'OTP sent successfully!');
@@ -208,6 +216,56 @@ const Register = () => {
                     className="w-full pl-11 pr-4 py-2.5 bg-white/50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-semibold text-slate-800 transition-all placeholder:text-slate-400 shadow-sm"
                     required
                   />
+                </div>
+              </div>
+
+              {/* Address Details */}
+              <div className="border-t border-slate-100 pt-4 mt-2">
+                <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2"><MapPin size={16} className="text-[#059669]"/> Address Details</h3>
+                <div className="space-y-4">
+                  <div>
+                    <input
+                      type="text"
+                      value={addressLine1}
+                      onChange={(e) => setAddressLine1(e.target.value)}
+                      placeholder="Street Address, Apt, Suite"
+                      className="w-full px-4 py-2.5 bg-white/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium text-sm text-slate-800 transition-all placeholder:text-slate-400 shadow-sm"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder="City"
+                        className="w-full px-4 py-2.5 bg-white/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium text-sm text-slate-800 transition-all placeholder:text-slate-400 shadow-sm"
+                        required
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={pincode}
+                        onChange={(e) => setPincode(e.target.value)}
+                        placeholder="Pincode"
+                        className="w-full px-4 py-2.5 bg-white/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium text-sm text-slate-800 transition-all placeholder:text-slate-400 shadow-sm"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <input
+                      type="text"
+                      value={landmark}
+                      onChange={(e) => setLandmark(e.target.value)}
+                      placeholder="Landmark (Optional)"
+                      className="w-full px-4 py-2.5 bg-white/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium text-sm text-slate-800 transition-all placeholder:text-slate-400 shadow-sm"
+                    />
+                  </div>
                 </div>
               </div>
 

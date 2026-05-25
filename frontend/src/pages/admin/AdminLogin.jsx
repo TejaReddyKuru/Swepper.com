@@ -37,9 +37,9 @@ const AdminLogin = () => {
         </div>
         <form className="space-y-6" onSubmit={handleLogin}>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
             <input
-              type="email"
+              type="text"
               required
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#059669] outline-none"
               value={email}
